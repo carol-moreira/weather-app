@@ -1,0 +1,184 @@
+/* ═══════════════════════════════════════════════════════════
+   TOKENS + BASE
+   ───────────────────────────────────────────────────────────
+   Paleta ESTRITA do projeto (nenhuma outra cor é usada):
+     Branco · Preto · Cinza · Verde-folha · Verde-escuro
+   Tudo que é cor vira variável aqui. Assim, mudar a identidade visual
+   é editar UM arquivo — e os componentes nunca "inventam" cores.
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* Branco e preto */
+  --white: #ffffff;
+  --black: #070a08;
+
+  /* Cinzas (do claro ao escuro) */
+  --gray-100: #f1f3f2; /* fundos secundários claros */
+  --gray-300: #cdd3d0; /* texto de apoio sobre fundo escuro */
+  --gray-500: #8b9490;
+  --gray-700: #4a524f; /* texto de apoio sobre fundo claro */
+  --gray-900: #1d2321;
+
+  /* Verde-folha: destaques, botões primários, ícones ativos */
+  --leaf: #5fc271;
+  --leaf-strong: #47a85a;
+
+  /* Verde-escuro: headers, gradientes, ênfase */
+  --forest: #124a35;
+  --forest-deep: #082a1f;
+
+  /* Superfície de vidro (glassmorphism) — preto translúcido sobre o céu */
+  --glass-bg: rgba(7, 22, 16, 0.36);
+  --glass-border: rgba(255, 255, 255, 0.16);
+
+  /* Escala de raios e sombras */
+  --radius-sm: 14px;
+  --radius-md: 22px;
+  --radius-lg: 30px;
+  --shadow-deep: 0 24px 60px -12px rgba(0, 0, 0, 0.55);
+  --shadow-soft: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+
+  /* Curvas de animação: "ease-out" forte dá sensação de resposta imediata */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ───────────────────────────────────────────────────────────
+   Cores do céu, por tema.
+   @property REGISTRA as variáveis como <color>. Sem isso o navegador
+   trata `--sky-top` como texto e não consegue interpolar; com isso, a
+   transição de tema (ex.: sol → chuva) vira um degradê animado.
+   ─────────────────────────────────────────────────────────── */
+@property --sky-top {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #082a1f;
+}
+@property --sky-bottom {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #1d6a48;
+}
+
+.app-shell {
+  --sky-top: #082a1f;
+  --sky-bottom: #1d6a48;
+}
+.app-shell[data-theme="sun"] {
+  --sky-top: #0f4a33;
+  --sky-bottom: #3f9e5a;
+}
+.app-shell[data-theme="rain"] {
+  --sky-top: #050c09;
+  --sky-bottom: #2a3733;
+}
+.app-shell[data-theme="cold"] {
+  --sky-top: #1b2220;
+  --sky-bottom: #58635f;
+}
+
+/* ───────────────────────────────────────────────────────────
+   Base
+   ─────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--forest-deep); /* cor de reserva enquanto o céu carrega */
+  color: var(--white);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+p,
+dl,
+dd,
+ul {
+  margin: 0;
+}
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+/* Foco visível para navegação por teclado (acessibilidade) */
+:focus-visible {
+  outline: 3px solid var(--leaf);
+  outline-offset: 3px;
+}
+
+/* Texto só para leitores de tela */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ───────────────────────────────────────────────────────────
+   Animações utilitárias reutilizadas pelos componentes
+   ─────────────────────────────────────────────────────────── */
+
+/* "reveal": entrada suave de baixo para cima. `--i` escalona os itens. */
+.reveal {
+  animation: rise 0.7s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ───────────────────────────────────────────────────────────
+   Movimento reduzido: quem configurou o sistema para menos animação
+   (vestibular, enxaqueca, preferência) não vê nada se mexendo.
+   ─────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .drop {
+    display: none; /* chuva parada no topo ficaria estranha: melhor esconder */
+  }
+}

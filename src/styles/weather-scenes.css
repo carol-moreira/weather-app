@@ -1,0 +1,193 @@
+/* ═══════════════════════════════════════════════════════════
+   CENAS ANIMADAS DO CLIMA
+   ───────────────────────────────────────────────────────────
+   Princípios usados em todas as animações deste arquivo:
+
+   1. Só `transform` e `opacity` são animados. Essas duas propriedades
+      rodam na GPU e não forçam o navegador a recalcular o layout,
+      então o fundo anima a 60 fps sem travar o restante da página.
+   2. Movimentos LENTOS e suaves: o fundo é ambiente, não pode roubar
+      a atenção da informação (a temperatura).
+   3. Delays NEGATIVOS: `animation-delay: -30s` faz a animação começar
+      "já em andamento", então a tela nasce com nuvens/gotas espalhadas
+      em vez de todas saindo do mesmo ponto.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ───────────── Céu (gradiente + contêiner das cenas) ───────────── */
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(170deg, var(--sky-top), var(--sky-bottom));
+  /* Graças ao @property (global.css), estas cores INTERPOLAM ao trocar de tema */
+  transition:
+    --sky-top 1.4s ease,
+    --sky-bottom 1.4s ease;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  animation: scene-in 1.2s ease both; /* a cena nova surge em fade */
+}
+@keyframes scene-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ───────────── Nuvem (usada por todas as cenas) ─────────────
+   Um retângulo bem arredondado (corpo) + duas circunferências (::before
+   e ::after) que formam as "curvas" de cima. Tudo em CSS, sem imagem.
+   As variáveis vêm do componente <Cloud />:
+     --w tamanho · --top altura · --o opacidade · --dur/--delay velocidade */
+.cloud {
+  --cloud-color: var(--white);
+  position: absolute;
+  top: var(--top);
+  left: -60vw; /* nasce fora da tela, à esquerda */
+  width: var(--w);
+  height: calc(var(--w) * 0.26);
+  border-radius: 999px;
+  background: var(--cloud-color);
+  opacity: var(--o);
+  filter: blur(2px); /* bordas macias = aspecto de névoa */
+  animation: drift var(--dur) linear var(--delay) infinite;
+  will-change: transform;
+}
+.cloud::before,
+.cloud::after {
+  content: "";
+  position: absolute;
+  background: inherit;
+  border-radius: 50%;
+}
+.cloud::before {
+  width: 42%;
+  height: 165%;
+  left: 14%;
+  bottom: 30%;
+}
+.cloud::after {
+  width: 32%;
+  height: 130%;
+  right: 16%;
+  bottom: 30%;
+}
+
+/* A nuvem atravessa a tela da esquerda para a direita, em loop.
+   translate3d ativa aceleração por GPU. */
+@keyframes drift {
+  to {
+    transform: translate3d(220vw, 0, 0);
+  }
+}
+
+/* ═════════════ CHUVA ═════════════ */
+
+/* Nuvens de tempestade: cinza-esverdeado escuro em vez de branco */
+.scene-rain .cloud {
+  --cloud-color: var(--gray-900);
+}
+
+/* Cada gota é um traço fino com gradiente (transparente → branco): a
+   ponta "apagada" no topo cria o rastro de movimento (motion blur falso). */
+.drop {
+  position: absolute;
+  top: -12vh;
+  left: var(--x);
+  width: 1.5px;
+  height: var(--len);
+  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, var(--white));
+  opacity: var(--o);
+  transform: rotate(12deg); /* chuva levemente inclinada, como se houvesse vento */
+  animation: fall var(--dur) linear var(--delay) infinite;
+  will-change: transform;
+}
+
+/* Queda: desce mais de 100vh e desloca para a esquerda em ~26vh, o que
+   acompanha a inclinação de 12° (tan 12° ≈ 0,21 × 125vh). */
+@keyframes fall {
+  from {
+    transform: translate3d(0, 0, 0) rotate(12deg);
+  }
+  to {
+    transform: translate3d(-26vh, 125vh, 0) rotate(12deg);
+  }
+}
+
+/* ═════════════ SOL / CALOR ═════════════ */
+
+/* Raios: repeating-conic-gradient desenha "fatias" alternadas de luz e
+   transparência a partir de um ponto central. O `mask` faz os raios
+   sumirem para longe do sol (fade radial). O elemento é gigante e fica
+   parcialmente fora da tela, no canto superior direito. */
+.sun-rays {
+  position: absolute;
+  top: -70vmax;
+  right: -70vmax;
+  width: 140vmax;
+  height: 140vmax;
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(150, 235, 160, 0.16) 0deg 5deg,
+    transparent 5deg 22deg
+  );
+  -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 62%);
+  mask-image: radial-gradient(circle, #000 0%, transparent 62%);
+  animation: rotate 140s linear infinite; /* uma volta a cada ~2 min */
+  will-change: transform;
+}
+@keyframes rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Brilho verde-claro no canto: "respira" (cresce e diminui levemente) */
+.sun-glow {
+  position: absolute;
+  top: -30vmax;
+  right: -30vmax;
+  width: 80vmax;
+  height: 80vmax;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(170, 240, 180, 0.6) 0%,
+    rgba(95, 194, 113, 0.28) 32%,
+    transparent 66%
+  );
+  animation: breathe 7s ease-in-out infinite;
+}
+@keyframes breathe {
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* ═════════════ FRIO ═════════════ */
+.scene-cold .cloud {
+  --cloud-color: var(--gray-100);
+  filter: blur(6px); /* desfoque maior = névoa fria, mais "distante" */
+}
+
+/* ═════════════ AMENO / INÍCIO ═════════════ */
+.mild-glow {
+  position: absolute;
+  bottom: -35vmax;
+  left: -25vmax;
+  width: 90vmax;
+  height: 90vmax;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(95, 194, 113, 0.34) 0%,
+    transparent 62%
+  );
+  animation: breathe 10s ease-in-out infinite;
+}

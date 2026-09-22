@@ -1,0 +1,15 @@
+# dependências e build
+node_modules
+dist
+*.tsbuildinfo
+
+# variáveis de ambiente (contêm a chave da API)
+.env
+.env.local
+
+# logs e arquivos de editor
+*.log
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
