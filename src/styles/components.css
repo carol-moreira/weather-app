@@ -37,6 +37,18 @@
   gap: 24px;
 }
 
+/* `main` cresce para ocupar o espaço entre header e footer e centraliza o
+   conteúdo nele. Sem isso, em telas altas o conteúdo fica colado no topo e
+   sobra um vão enorme e desproporcional acima do rodapé — centralizar
+   distribui esse respiro em vez de empurrá-lo todo para baixo. */
+main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+}
+
 /* Glassmorphism: fundo translúcido + desfoque do que está atrás + borda
    fina clara. O desfoque faz as gotas/nuvens do fundo "passarem por trás
    do vidro", o que reforça a sensação de profundidade. */
@@ -815,9 +827,15 @@
 /* ═══════════════════════════════════════════════════════════
    DESKTOP (≥ 900px): hero à esquerda, cards de apoio à direita,
    previsão por hora ocupando a largura toda embaixo.
+   ───────────────────────────────────────────────────────────
+   A partir daqui, `.app` usa `max-width: min(…, …vw)` em vez de um valor
+   fixo: o container CRESCE com a tela (menos espaço vazio em monitores
+   grandes) mas sempre limitado a uma fração da largura, para o texto não
+   esticar até virar ilegível em telas ultrawide.
    ═══════════════════════════════════════════════════════════ */
 @media (min-width: 900px) {
   .app {
+    max-width: min(1520px, 92vw);
     padding-inline: max(32px, env(safe-area-inset-left));
   }
   .search {
@@ -846,10 +864,47 @@
   }
 }
 
-/* Telas largas: mais respiro em volta do conteúdo */
+/* Telas largas (notebooks grandes, monitores Full HD/1440p): mais respiro
+   em volta do conteúdo e um pouco mais de espaço entre hero e stats. */
 @media (min-width: 1400px) {
   .app {
-    max-width: 1120px;
+    max-width: min(1760px, 88vw);
+    gap: 32px;
+  }
+  .search {
+    max-width: 640px;
+  }
+  .results,
+  .loading {
+    column-gap: 56px;
+  }
+  .hour,
+  .skeleton--hour {
+    flex-basis: 112px;
+  }
+}
+
+/* Monitores ultrawide / 4K: o container ainda cresce, mas com um teto —
+   passado esse ponto, dar mais espaço aos cards (padding, fontes) aproveita
+   a tela melhor do que só alargar o texto indefinidamente. */
+@media (min-width: 1800px) {
+  .app {
+    max-width: min(2000px, 82vw);
+    padding-block: max(28px, env(safe-area-inset-top)) max(40px, env(safe-area-inset-bottom));
+  }
+  .search {
+    max-width: 720px;
+  }
+  .results,
+  .loading {
+    column-gap: 72px;
+  }
+  .stat {
+    padding: 20px 22px;
+  }
+  .hour,
+  .skeleton--hour {
+    flex-basis: 124px;
   }
 }
 

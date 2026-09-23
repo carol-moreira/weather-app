@@ -105,13 +105,18 @@ function resultToPlace(result: GeoResult): Place {
   };
 }
 
-async function fetchCities(name: string, signal?: AbortSignal): Promise<Place[]> {
+async function fetchCities(
+  name: string,
+  signal?: AbortSignal,
+  countryCode?: string,
+): Promise<Place[]> {
   const params = new URLSearchParams({
     name,
     count: "10",
     language: "pt", // nomes de países e estados em português
     format: "json",
   });
+  if (countryCode) params.set("countryCode", countryCode);
 
   let response: Response;
   try {
@@ -127,7 +132,13 @@ async function fetchCities(name: string, signal?: AbortSignal): Promise<Place[]>
   return (data.results ?? []).map(resultToPlace);
 }
 
-/** Ordena: nome idêntico primeiro, depois começa-com; dentro disso, Brasil e mais populosos. */
+/**
+ * Ordena: BRASIL SEMPRE PRIMEIRO — depois, dentro de cada grupo (Brasil e
+ * resto do mundo), nome idêntico antes de começa-com, e mais populosos antes.
+ * Isso resolve o caso de "São" trazer só 1 cidade brasileira entre 10
+ * vilarejos homônimos de outros países: o Brasil vira o critério principal
+ * de ordenação, não só um desempate.
+ */
 function byRelevance(query: string) {
   const tier = (place: Place) => {
     const name = normalizeText(place.name);
@@ -137,8 +148,8 @@ function byRelevance(query: string) {
   };
 
   return (a: Place, b: Place) =>
-    tier(a) - tier(b) ||
     Number(b.countryCode === "BR") - Number(a.countryCode === "BR") ||
+    tier(a) - tier(b) ||
     b.population - a.population;
 }
 
@@ -165,10 +176,23 @@ export async function searchPlaces(
     normalizeText(state.name).includes(query),
   ).map(stateToPlace);
 
-  const cities = await fetchCities(name, signal);
+  // Duas buscas em paralelo: uma restrita ao Brasil e outra sem restrição.
+  // Por quê: a API só devolve 10 resultados por chamada e mistura vilarejos
+  // homônimos do mundo todo (ex.: "Sao" no Afeganistão, Paquistão, Vietnã…),
+  // deixando cidades brasileiras de fora do topo mesmo quando são o que o
+  // usuário quer. A busca restrita a "BR" garante que elas entrem no pool
+  // antes da ordenação (que já prioriza o Brasil — ver `byRelevance`).
+  const [brazilCities, worldCities] = await Promise.all([
+    fetchCities(name, signal, "BR"),
+    fetchCities(name, signal),
+  ]);
 
   // Remove duplicados por id (a mesma cidade pode vir repetida)
-  const unique = [...new Map([...states, ...cities].map((p) => [p.id, p])).values()];
+  const unique = [
+    ...new Map(
+      [...states, ...brazilCities, ...worldCities].map((p) => [p.id, p]),
+    ).values(),
+  ];
 
   // "Campinas, SP": mantém só o que casa com TODOS os qualificadores.
   // Se nada casar, não escondemos tudo — mostramos os resultados sem filtro.
